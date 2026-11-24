@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Báo cáo bài tập React CRUD</title>
+  <style>
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+      line-height: 1.6;
+      color: #222;
+      background: #fff;
+    }
+    h1 { font-size: 26px; margin-bottom: 8px; }
+    h2 {
+      margin-top: 36px;
+      border-bottom: 2px solid #0d6efd;
+      padding-bottom: 4px;
+    }
+    h3 { margin-top: 22px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 12px 0;
+      font-size: 14px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #e9eef3; }
+    code, pre {
+      background: #f3f4f6;
+      border-radius: 4px;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+    }
+    code { padding: 1px 4px; }
+    pre { padding: 10px 12px; overflow-x: auto; }
+    .err {
+      background: #fdecea;
+      border-left: 4px solid #dc3545;
+      padding: 8px 12px;
+      margin: 8px 0;
+    }
+    .ok {
+      background: #e8f5e9;
+      border-left: 4px solid #2e7d32;
+      padding: 8px 12px;
+      margin: 8px 0;
+    }
+    svg { max-width: 100%; height: auto; display: block; margin: 12px auto; }
+    svg text { font-family: system-ui, Arial, sans-serif; }
+  </style>
+</head>
+<body>
+  <h1>Báo cáo bài tập React CRUD — Quản lý người dùng</h1>
+  <p>
+    Ứng dụng web xây dựng bằng React 18 (nhúng qua CDN cùng ReactDOM và Babel Standalone trong một file HTML),
+    hỗ trợ đầy đủ các chức năng <b>Tìm kiếm, Thêm, Sửa, Xóa (CRUD)</b>. Dữ liệu ban đầu được tải từ API mẫu
+    <code>https://jsonplaceholder.typicode.com/users</code>; các thao tác thêm/sửa/xóa cập nhật trực tiếp
+    trên state của React tại trình duyệt.
+  </p>
+  <p><b>Trang ứng dụng:</b> <a href="./index.html">Mở ứng dụng Quản lý người dùng (index.html)</a></p>
+
+  <h2>1. Sơ đồ Component (Component Tree)</h2>
+  <svg viewBox="0 0 780 350" role="img" aria-label="Sơ đồ cây component">
+    <defs>
+      <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 z" fill="#555" />
+      </marker>
+    </defs>
+
+    <!-- Connecting lines -->
+    <g stroke="#555" stroke-width="1.5" fill="none" marker-end="url(#arrow)">
+      <line x1="390" y1="62" x2="120" y2="126" />
+      <line x1="390" y1="62" x2="360" y2="126" />
+      <line x1="390" y1="62" x2="640" y2="126" />
+      <line x1="360" y1="176" x2="360" y2="230" />
+      <line x1="640" y1="176" x2="640" y2="230" />
+    </g>
+
+    <!-- Main components -->
+    <g stroke="#0d6efd" stroke-width="2" fill="#e8f0fe">
+      <rect x="300" y="18" width="180" height="44" rx="8" />
+      <rect x="30" y="128" width="180" height="48" rx="8" />
+      <rect x="270" y="128" width="180" height="48" rx="8" />
+      <rect x="550" y="128" width="180" height="48" rx="8" />
+    </g>
+
+    <!-- Shared child component -->
+    <g stroke="#2e7d32" stroke-width="1.8" fill="#e8f5e9">
+      <rect x="260" y="232" width="200" height="50" rx="8" />
+      <rect x="540" y="232" width="200" height="50" rx="8" />
+    </g>
+
+    <g font-size="14" text-anchor="middle" fill="#222">
+      <text x="390" y="45" font-weight="700">App</text>
+
+      <text x="120" y="148" font-weight="700">SearchForm</text>
+      <text x="120" y="166" font-size="12">&lt;input&gt; tìm kiếm</text>
+
+      <text x="360" y="148" font-weight="700">AddUser</text>
+      <text x="360" y="166" font-size="12">Nút Thêm + Modal Thêm</text>
+
+      <text x="640" y="148" font-weight="700">ResultTable</text>
+      <text x="640" y="166" font-size="12">Bảng lọc + Modal Sửa</text>
+
+      <text x="360" y="252" font-weight="700">UserFormFields</text>
+      <text x="360" y="270" font-size="12">Các ô nhập liệu (idPrefix="add")</text>
+
+      <text x="640" y="252" font-weight="700">UserFormFields</text>
+      <text x="640" y="270" font-size="12">Các ô nhập liệu (idPrefix="edit")</text>
+    </g>
+
+    <text x="390" y="325" font-size="12" text-anchor="middle" fill="#555">
+      Màu xanh dương: các component chính theo mô hình bài tập. Màu xanh lá: component form dùng chung cho cả Thêm và Sửa.
+    </text>
+  </svg>
+  <p>
+    <code>App</code> là component gốc quản lý 3 component con trực tiếp: <code>SearchForm</code>,
+    <code>AddUser</code> và <code>ResultTable</code>. Để tránh lặp lại mã JSX cho 8 trường nhập liệu
+    (gồm cả 3 trường lồng trong <code>address</code>), phần các ô input được tách thành component dùng chung
+    <code>UserFormFields</code> và hàm tiện ích <code>updateUserField</code>.
+  </p>
+
+  <h2>2. Luồng dữ liệu và State Lifting</h2>
+  <svg viewBox="0 0 780 340" role="img" aria-label="Sơ đồ luồng dữ liệu một chiều">
+    <defs>
+      <marker id="arrow-up" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 z" fill="#c2410c" />
+      </marker>
+      <marker id="arrow-down" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+        <path d="M0,0 L8,4 L0,8 z" fill="#0d6efd" />
+      </marker>
+    </defs>
+
+    <!-- App box -->
+    <rect x="260" y="125" width="260" height="86" rx="10" fill="#e8f0fe" stroke="#0d6efd" stroke-width="2" />
+    <g text-anchor="middle" fill="#222">
+      <text x="390" y="152" font-size="16" font-weight="700">App</text>
+      <text x="390" y="176" font-size="13">state: kw (setKw)</text>
+      <text x="390" y="196" font-size="13">state: newUser (setNewUser)</text>
+    </g>
+
+    <!-- Child boxes -->
+    <g fill="#fff" stroke="#888" stroke-width="1.5">
+      <rect x="20" y="22" width="170" height="50" rx="8" />
+      <rect x="20" y="262" width="170" height="50" rx="8" />
+      <rect x="590" y="125" width="170" height="86" rx="8" />
+    </g>
+    <g text-anchor="middle" font-size="14" font-weight="700" fill="#222">
+      <text x="105" y="52">SearchForm</text>
+      <text x="105" y="292">AddUser</text>
+      <text x="675" y="164">ResultTable</text>
+      <text x="675" y="186" font-size="12" font-weight="400">users, editing</text>
+    </g>
+
+    <!-- Arrows -->
+    <g stroke="#c2410c" stroke-width="2" fill="none" marker-end="url(#arrow-up)">
+      <path d="M150,72 L295,125" />
+      <path d="M150,262 L295,211" />
+    </g>
+    <g stroke="#0d6efd" stroke-width="2" fill="none" marker-end="url(#arrow-down)">
+      <path d="M520,168 L588,168" />
+    </g>
+
+    <!-- Labels -->
+    <g font-size="12" fill="#c2410c">
+      <text x="20" y="108">onChangeValue(text)</text>
+      <text x="20" y="242">onAddUser(user)</text>
+    </g>
+    <g font-size="12" fill="#0d6efd" text-anchor="middle">
+      <text x="554" y="154">kw, newUser</text>
+      <text x="554" y="190">onAdd</text>
+    </g>
+
+    <text x="390" y="330" font-size="12" text-anchor="middle" fill="#555">
+      Màu cam: component con gọi callback đẩy dữ liệu lên App. Màu xanh: App truyền state và callback xuống qua props.
+    </text>
+  </svg>
+
+  <p>Ứng dụng tuân thủ luồng dữ liệu một chiều theo hai nhánh chính:</p>
+  <ul>
+    <li>
+      <b>Tìm kiếm:</b> Người dùng nhập vào <code>SearchForm</code> &rarr; gọi <code>onChangeValue</code>
+      (chính là <code>setKw</code>) &rarr; <code>App</code> cập nhật <code>kw</code> &rarr; truyền <code>kw</code>
+      xuống <code>ResultTable</code> để lọc bằng <code>Array.filter()</code> theo cả <code>name</code> và <code>username</code>.
+    </li>
+    <li>
+      <b>Thêm người dùng:</b> Người dùng nhập form ở <code>AddUser</code> và bấm Thêm &rarr; gọi <code>onAddUser(user)</code>
+      (chính là <code>setNewUser</code>) &rarr; <code>App</code> truyền <code>newUser</code> xuống <code>ResultTable</code>
+      &rarr; <code>useEffect([newUser])</code> thêm người dùng vào mảng <code>users</code> với <code>id</code> tự tăng
+      rồi gọi <code>onAdd()</code> để đặt <code>newUser</code> về lại <code>null</code>.
+    </li>
+  </ul>
+
+  <h3>Vì sao cần State Lifting ở <code>App</code>?</h3>
+  <ul>
+    <li>
+      Trong React, dữ liệu chỉ truyền từ cha xuống con qua props; các component anh em
+      (<code>SearchForm</code>, <code>AddUser</code>, <code>ResultTable</code>) không thể truyền trực tiếp cho nhau.
+    </li>
+    <li>
+      Nâng <code>kw</code> và <code>newUser</code> lên cha chung gần nhất (<code>App</code>) giúp đồng bộ
+      trạng thái giữa nơi nhập liệu và nơi hiển thị bảng mà vẫn giữ một nguồn dữ liệu duy nhất.
+    </li>
+    <li>
+      Các state nội bộ như <code>users</code>, <code>editing</code> (chỉ <code>ResultTable</code> dùng) hoặc
+      <code>adding</code>, <code>user</code> (chỉ <code>AddUser</code> dùng) được giữ cục bộ trong chính component đó.
+    </li>
+  </ul>
+
+  <h2>3. Bảng Props trong ứng dụng</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Prop</th>
+        <th>Kiểu</th>
+        <th>Giá trị truyền vào</th>
+        <th>Mục đích</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>SearchForm</code></td>
+        <td><code>onChangeValue</code></td>
+        <td><code>function(string)</code></td>
+        <td><code>setKw</code></td>
+        <td>Cập nhật từ khóa tìm kiếm <code>kw</code> ở <code>App</code> khi người dùng gõ</td>
+      </tr>
+      <tr>
+        <td><code>AddUser</code></td>
+        <td><code>onAddUser</code></td>
+        <td><code>function(object)</code></td>
+        <td><code>setNewUser</code></td>
+        <td>Gửi thông tin người dùng mới từ form lên <code>App</code></td>
+      </tr>
+      <tr>
+        <td rowspan="3"><code>ResultTable</code></td>
+        <td><code>kw</code></td>
+        <td><code>string</code></td>
+        <td><code>kw</code></td>
+        <td>Từ khóa để lọc danh sách theo <code>name</code> hoặc <code>username</code></td>
+      </tr>
+      <tr>
+        <td><code>newUser</code></td>
+        <td><code>object | null</code></td>
+        <td><code>newUser</code></td>
+        <td>Dữ liệu người dùng mới cần chèn vào bảng</td>
+      </tr>
+      <tr>
+        <td><code>onAdd</code></td>
+        <td><code>function()</code></td>
+        <td><code>() =&gt; setNewUser(null)</code></td>
+        <td>Reset <code>newUser</code> sau khi đã thêm vào <code>users</code> để tránh thêm lặp</td>
+      </tr>
+      <tr>
+        <td rowspan="3"><code>UserFormFields</code></td>
+        <td><code>userData</code></td>
+        <td><code>object</code></td>
+        <td><code>user</code> hoặc <code>editing</code></td>
+        <td>Dữ liệu hiển thị cho các ô input dạng Controlled Component</td>
+      </tr>
+      <tr>
+        <td><code>idPrefix</code></td>
+        <td><code>string</code></td>
+        <td><code>"add"</code> hoặc <code>"edit"</code></td>
+        <td>Tạo <code>id</code> / <code>htmlFor</code> duy nhất, tránh trùng DOM id giữa form Thêm và Sửa</td>
+      </tr>
+      <tr>
+        <td><code>onFieldChange</code></td>
+        <td><code>function(id, value)</code></td>
+        <td><code>handleFieldChange</code> / <code>handleEditChange</code></td>
+        <td>Cập nhật trường tương ứng (kể cả thuộc tính lồng trong <code>address</code>)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>4. Các lỗi gặp phải trong quá trình thực hiện và cách khắc phục</h2>
+
+  <h3>Lỗi 1 (Bước 1): Trang trắng / lỗi cú pháp do copy thẻ <code>&lt;script&gt;</code> từ PDF</h3>
+  <div class="err">
+    <b>Hiện tượng:</b> Mở file <code>index.html</code> không hiển thị chữ "Quản lý người dùng", Console báo lỗi tải thư viện và lỗi cú pháp ở thẻ <code>&lt;div&gt;</code> trong JSX.
+  </div>
+  <p>
+    <b>Nguyên nhân:</b> Đường dẫn CDN của <code>react-dom</code> bị ngắt xuống dòng và mất dấu gạch nối
+    (<code>react dom.development.js</code>); đồng thời thuộc tính <code>type</code> của thẻ <code>&lt;script&gt;</code>
+    bị dính dấu ngoặc kép cong (<code>“text/babel”</code>) khiến Babel không nhận diện để biên dịch JSX.
+  </p>
+  <p><b>Cách sửa:</b> Nối liền URL chuẩn <code>react-dom.development.js</code> và dùng dấu ngoặc kép thẳng <code>type="text/babel"</code>.</p>
+  <div class="ok">Sau khi sửa, React 18 và Babel hoạt động bình thường, render thành công component gốc <code>App</code>.</div>
+
+  <h3>Lỗi 2 (Bước 4): Lỗi runtime khi hiển thị danh sách <code>ResultTable</code> và khai báo <code>AddUser</code></h3>
+  <div class="err">
+    <b>Hiện tượng:</b> Ứng dụng crash khi render với các lỗi <code>ReferenceError: filteredUsers is not defined</code>,
+    lỗi React 18 vì <code>AddUser</code> trả về <code>undefined</code>, và cấu trúc DOM không hợp lệ do thiếu <code>&lt;table&gt;</code>.
+  </div>
+  <p><b>Nguyên nhân:</b></p>
+  <ul>
+    <li>Gõ nhầm tên biến <code>filtereUsers</code> (thiếu chữ <code>d</code>) nhưng bên dưới lại gọi <code>filteredUsers.map(...)</code>.</li>
+    <li><code>ResultTable</code> trả về trực tiếp <code>&lt;tbody&gt;</code> mà không có <code>&lt;table&gt;</code> và <code>&lt;thead&gt;</code> bao ngoài.</li>
+    <li>Component tạm <code>function AddUser({onAddUser}) {}</code> không có lệnh <code>return</code>, dẫn đến trả về <code>undefined</code>.</li>
+  </ul>
+  <p><b>Cách sửa:</b> Sửa đúng tên biến <code>filteredUsers</code> (đồng thời lọc theo cả <code>name</code> và <code>username</code>), bọc <code>&lt;table&gt;</code> + <code>&lt;thead&gt;</code> bên ngoài <code>&lt;tbody&gt;</code>, và trả về <code>null</code> (trước khi hoàn thiện Bước 5).</p>
+  <div class="ok">Bảng hiển thị đầy đủ 10 người dùng từ API và lọc theo từ khóa ngay lập tức.</div>
+
+  <h3>Lỗi 3 (Bước 5 &amp; 7): Xử lý trùng <code>key</code> sau khi xóa và tránh lỗi gọi hàm ngay lúc render</h3>
+  <div class="err">
+    <b>Vấn đề tiềm ẩn từ mã minh họa:</b>
+    (1) Đặt <code>id: prev.length + 1</code> sẽ tạo ra ID trùng (ví dụ xóa ID 1 còn 9 người, thêm mới ra ID 10 trùng với người cuối), gây cảnh báo <code>two children with the same key</code>.
+    (2) Viết <code>onClick={setAdding(false)}</code> sẽ gọi hàm ngay lúc render thay vì lúc bấm nút.
+  </div>
+  <p><b>Cách xử lý trong bài:</b> Tính ID mới bằng giá trị lớn nhất hiện có cộng 1, và luôn truyền hàm callback cho <code>onClick</code>.</p>
+<pre>// Sinh ID an toàn không bị trùng sau khi xóa
+const nextId = prev.length &gt; 0 ? Math.max(...prev.map((u) =&gt; u.id)) + 1 : 1;
+return [...prev, { ...newUser, id: nextId }];
+
+// Truyền hàm callback cho sự kiện click
+&lt;button onClick={handleCancel}&gt;Hủy&lt;/button&gt;</pre>
+  <div class="ok">Thêm mới sau khi xóa luôn sinh ID kế tiếp hợp lệ (ví dụ ID 11), không có warning trong Console và modal đóng/mở đúng thao tác.</div>
+
+  <h2>5. Kiểm thử chức năng (Bước 9)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Chức năng</th>
+        <th>Kịch bản kiểm thử</th>
+        <th>Kết quả mong đợi / Thực tế</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>Read</b></td>
+        <td>Mở <code>index.html</code> trên trình duyệt</td>
+        <td>Tải và hiển thị 10 người dùng từ JSONPlaceholder kèm đầy đủ cột (ID, Name, Username, Email, Address, Phone, Actions)</td>
+      </tr>
+      <tr>
+        <td><b>Tìm kiếm</b></td>
+        <td>Nhập <code>bret</code> hoặc <code>leanne</code> vào ô tìm kiếm</td>
+        <td>Danh sách lọc theo thời gian thực không phân biệt hoa thường cho cả <code>name</code> và <code>username</code></td>
+      </tr>
+      <tr>
+        <td><b>Thêm (Create)</b></td>
+        <td>Bấm <b>Thêm</b>, thử để trống Name/Username rồi nhập đầy đủ (kể cả Street, Suite, City) và bấm <b>Thêm</b></td>
+        <td>Cảnh báo nếu thiếu Name/Username; khi hợp lệ sẽ thêm dòng mới vào cuối bảng với ID không trùng và đóng modal</td>
+      </tr>
+      <tr>
+        <td><b>Sửa (Update)</b></td>
+        <td>Bấm <b>Sửa</b> một dòng, thay đổi Name và City trên modal (thử bấm <b>Hủy</b> trước, sau đó thử bấm <b>Lưu</b>)</td>
+        <td>Nhờ Deep Copy <code>{ ...user, address: { ...user.address } }</code>, bảng gốc không đổi khi chưa bấm Lưu; bấm Lưu thì bảng cập nhật chính xác</td>
+      </tr>
+      <tr>
+        <td><b>Xóa (Delete)</b></td>
+        <td>Bấm <b>Xóa</b> một dòng bất kỳ, sau đó thêm mới một người dùng</td>
+        <td>Dòng bị xóa khỏi bảng ngay lập tức (dùng <code>filter</code> bất biến); thêm người dùng mới tiếp theo vẫn có ID duy nhất</td>
+      </tr>
+    </tbody>
+  </table>
+</body>
+</html>
